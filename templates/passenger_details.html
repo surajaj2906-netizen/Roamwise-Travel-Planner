@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Passenger details{% endblock %}
+{% block content %}
+<section class="container py-5 passenger-page">
+  <div class="page-intro"><div><p class="eyebrow text-primary">BEFORE YOU BOOK</p><h1>Who is travelling?</h1><p>We need the lead passenger details to prepare your booking. Use the name exactly as it appears on the travel ID.</p></div><a class="btn btn-outline-primary" href="{{ url_for('planner') }}">Change trip</a></div>
+  <div class="row g-4 align-items-start">
+    <div class="col-lg-8">
+      <form class="passenger-form" method="post" action="{{ url_for('payment_gateway', package_index=package_index) }}">
+        <h2>Lead passenger</h2><p class="text-muted small">Required for booking confirmation and contact updates.</p>
+        <div class="row g-3">
+          <div class="col-md-8"><label for="passenger_name">Full name</label><input id="passenger_name" name="passenger_name" class="form-control" value="{{ passenger.get('name', '') }}" autocomplete="name" required></div>
+          <div class="col-md-4"><label for="passenger_age">Age</label><input id="passenger_age" name="passenger_age" type="number" min="1" max="120" class="form-control" value="{{ passenger.get('age', '') }}" required></div>
+          <div class="col-md-4"><label for="passenger_gender">Gender</label><select id="passenger_gender" name="passenger_gender" class="form-select" required><option value="">Select</option>{% for option in ['Female','Male','Non-binary','Prefer not to say'] %}<option value="{{ option }}" {% if passenger.get('gender') == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+          <div class="col-md-4"><label for="passenger_phone">Mobile number</label><input id="passenger_phone" name="passenger_phone" type="tel" class="form-control" value="{{ passenger.get('phone', current_user.phone_number or '') }}" autocomplete="tel" required></div>
+          <div class="col-md-4"><label for="passenger_email">Email address</label><input id="passenger_email" name="passenger_email" type="email" class="form-control" value="{{ passenger.get('email', current_user.email) }}" autocomplete="email" required></div>
+          <div class="col-md-6"><label for="id_type">Travel ID type <span class="optional-label">optional</span></label><select id="id_type" name="id_type" class="form-select"><option value="">Select later</option><option value="Aadhaar" {% if passenger.get('id_type') == 'Aadhaar' %}selected{% endif %}>Aadhaar</option><option value="Passport" {% if passenger.get('id_type') == 'Passport' %}selected{% endif %}>Passport</option><option value="Driving licence" {% if passenger.get('id_type') == 'Driving licence' %}selected{% endif %}>Driving licence</option><option value="Voter ID" {% if passenger.get('id_type') == 'Voter ID' %}selected{% endif %}>Voter ID</option></select></div>
+          <div class="col-md-6"><label for="id_last4">Last 4 characters of ID <span class="optional-label">optional</span></label><input id="id_last4" name="id_last4" class="form-control" maxlength="4" value="{{ passenger.get('id_last4', '') }}" autocomplete="off"></div>
+          <div class="col-12"><label for="payment_mode">Payment mode</label><select id="payment_mode" name="payment_mode" class="form-select" required><option value="">Choose a payment mode</option>{% for option in ['UPI · Google Pay / PhonePe / Paytm','Credit card','Debit card','Net banking','Wallets','Pay later'] %}<option value="{{ option }}" {% if passenger.get('payment_mode') == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="passenger-privacy"><strong>Payment and privacy note</strong><span>Payment is simulated in this demo. No card, UPI PIN, password, or full ID number is collected. Never enter sensitive payment credentials here.</span></div>
+        <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Review and confirm booking <span aria-hidden="true">→</span></button>
+      </form>
+    </div>
+    <div class="col-lg-4"><aside class="aside-card passenger-summary"><p class="eyebrow text-primary mb-1">YOUR SELECTION</p><h3>{{ package.name }}</h3><p>{{ travelers }} traveller{% if travelers != 1 %}s{% endif %}</p><div class="d-flex justify-content-between border-top pt-3"><span>Total estimate</span><strong>{{ package.total|rupee }}</strong></div><small class="text-muted d-block mt-3">You will review these details before the simulated booking is created.</small></aside></div>
+  </div>
+</section>
+{% endblock %}

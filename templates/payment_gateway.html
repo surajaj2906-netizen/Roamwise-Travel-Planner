@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Secure payment{% endblock %}
+{% block content %}
+<section class="container py-5 payment-page">
+  <div class="page-intro"><div><p class="eyebrow text-primary">STEP 2 OF 2 · DEMO CHECKOUT</p><h1>Complete your payment.</h1><p>Your passenger details are ready. Review the amount and selected payment mode before confirming.</p></div><a class="btn btn-outline-primary" href="{{ url_for('passenger_details', package_index=package_index) }}">Edit details</a></div>
+  <div class="row g-4 align-items-start">
+    <div class="col-lg-7">
+      <div class="payment-card">
+        <div class="payment-card-heading"><span class="payment-lock" aria-hidden="true">✓</span><div><h2>Roamwise demo gateway</h2><p>No real money will be charged.</p></div></div>
+        <div class="payment-method-line"><span>Payment mode</span><strong>{{ passenger.payment_mode }}</strong></div>
+        <div class="payment-method-line"><span>Passenger</span><strong>{{ passenger.name }}</strong></div>
+        <div class="payment-method-line"><span>Email receipt</span><strong>{{ passenger.email }}</strong></div>
+        <div class="payment-notice"><strong>Demo payment protection</strong><span>Do not enter card numbers, CVV, UPI PINs, passwords, or banking credentials. This button only simulates a successful payment.</span></div>
+        <form method="post" action="{{ url_for('book_package', package_index=package_index) }}">
+          {% for key, value in passenger.items() %}<input type="hidden" name="{{ 'passenger_' + key if key in ['name','age','gender','phone','email'] else key }}" value="{{ value }}">{% endfor %}
+          <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Simulate payment and confirm booking <span aria-hidden="true">→</span></button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-5"><aside class="aside-card payment-summary"><p class="eyebrow text-primary mb-1">ORDER SUMMARY</p><h3>{{ package.name }} package</h3><p>{{ passenger.name }} · {{ package.days }} day{% if package.days != 1 %}s{% endif %}</p><div class="d-flex justify-content-between border-top pt-3 mt-3"><span>Amount payable</span><strong class="payment-total">{{ package.total|rupee }}</strong></div><small class="text-muted d-block mt-3">A confirmation number and PDF itinerary will be created after the demo payment.</small></aside></div>
+  </div>
+</section>
+{% endblock %}
