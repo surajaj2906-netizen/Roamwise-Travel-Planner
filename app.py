@@ -2,6 +2,7 @@ import os
 import json
 import secrets
 import smtplib
+import resend
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus
@@ -45,6 +46,8 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
 app.config["OTP_TTL_SECONDS"] = int(os.environ.get("OTP_TTL_SECONDS", "600"))
 app.config["OTP_RESEND_SECONDS"] = int(os.environ.get("OTP_RESEND_SECONDS", "60"))
 app.config["OTP_MAX_ATTEMPTS"] = int(os.environ.get("OTP_MAX_ATTEMPTS", "5"))
+app.config["RESEND_API_KEY"] = os.environ.get("RESEND_API_KEY")
+app.config["RESEND_FROM"] = os.environ.get("RESEND_FROM", "Roamwise <onboarding@resend.dev>")
 app.config["SMTP_HOST"] = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 app.config["SMTP_PORT"] = int(os.environ.get("SMTP_PORT", "587"))
 app.config["SMTP_USERNAME"] = os.environ.get("SMTP_USERNAME")
@@ -470,43 +473,28 @@ def generate_otp():
 
 
 def send_otp_email(recipient, otp):
-    """Send an OTP through SMTP, or save it to a local debug file in demo mode."""
-
-    required = ("SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM")
-    if not all(app.config[key] for key in required):
-        debug_path = os.path.join(app.instance_path, "otp_debug.log")
-        with open(debug_path, "a", encoding="utf-8") as handle:
-            handle.write(f"[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}] {recipient} | otp={otp}\n")
+    """Send a six-digit OTP through the Resend email API."""
+    api_key = app.config.get("RESEND_API_KEY")
+    if not api_key:
+        app.logger.error("RESEND_API_KEY is not configured")
         return False
 
-    message = EmailMessage()
-    message["Subject"] = "Your Roamwise verification code"
-    message["From"] = app.config["SMTP_FROM"]
-    message["To"] = recipient
-    message.set_content(
-        f"Your Roamwise verification code is {otp}. It expires in "
-        f"{app.config['OTP_TTL_SECONDS'] // 60} minutes. Do not share this code."
-    )
+    resend.api_key = api_key
     try:
-        app.logger.info(
-            "Sending OTP email via SMTP host=%s port=%s username=%s from=%s tls=%s",
-            app.config["SMTP_HOST"],
-            app.config["SMTP_PORT"],
-            app.config["SMTP_USERNAME"],
-            app.config["SMTP_FROM"],
-            app.config["SMTP_USE_TLS"],
-        )
-        with smtplib.SMTP(app.config["SMTP_HOST"], app.config["SMTP_PORT"], timeout=20) as client:
-            if app.config["SMTP_USE_TLS"]:
-                client.starttls()
-            client.login(app.config["SMTP_USERNAME"], app.config["SMTP_PASSWORD"])
-            client.send_message(message)
-        app.logger.info("OTP email sent successfully to %s", recipient)
+        resend.Emails.send({
+            "from": app.config["RESEND_FROM"],
+            "to": [recipient],
+            "subject": "Your Roamwise verification code",
+            "text": (
+                f"Your Roamwise verification code is {otp}. It expires in "
+                f"{app.config['OTP_TTL_SECONDS'] // 60} minutes. Do not share this code."
+            ),
+        })
+        app.logger.info("OTP email sent successfully through Resend")
         return True
     except Exception:
-        app.logger.exception("OTP SMTP send failed for %s", recipient)
+        app.logger.exception("Resend OTP email failed")
         raise
-
 
 def trip_options(source, destination, depart, returning, travelers, budget, style, interests, hotel_pref):
     """Compare three packages; the lowest-cost in-budget package is the budget recommendation."""
