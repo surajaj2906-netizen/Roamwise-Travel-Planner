@@ -487,12 +487,25 @@ def send_otp_email(recipient, otp):
         f"Your Roamwise verification code is {otp}. It expires in "
         f"{app.config['OTP_TTL_SECONDS'] // 60} minutes. Do not share this code."
     )
-    with smtplib.SMTP(app.config["SMTP_HOST"], app.config["SMTP_PORT"], timeout=10) as client:
-        if app.config["SMTP_USE_TLS"]:
-            client.starttls()
-        client.login(app.config["SMTP_USERNAME"], app.config["SMTP_PASSWORD"])
-        client.send_message(message)
-    return True
+    try:
+        app.logger.info(
+            "Sending OTP email via SMTP host=%s port=%s username=%s from=%s tls=%s",
+            app.config["SMTP_HOST"],
+            app.config["SMTP_PORT"],
+            app.config["SMTP_USERNAME"],
+            app.config["SMTP_FROM"],
+            app.config["SMTP_USE_TLS"],
+        )
+        with smtplib.SMTP(app.config["SMTP_HOST"], app.config["SMTP_PORT"], timeout=20) as client:
+            if app.config["SMTP_USE_TLS"]:
+                client.starttls()
+            client.login(app.config["SMTP_USERNAME"], app.config["SMTP_PASSWORD"])
+            client.send_message(message)
+        app.logger.info("OTP email sent successfully to %s", recipient)
+        return True
+    except Exception:
+        app.logger.exception("OTP SMTP send failed for %s", recipient)
+        raise
 
 
 def trip_options(source, destination, depart, returning, travelers, budget, style, interests, hotel_pref):
